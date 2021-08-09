@@ -1,29 +1,5 @@
 <template>
 <div>
-<nav class="navbar navbar-expand navbar-dark bg-dark">
-      <router-link to="/MainTeacher" class="navbar-brand">NameSystem</router-link>
-      <div class="navbar-nav mr-auto">
-        <li class="nav-item">
-          <router-link :to="{ name: 'TypicalWorkEditor' }" class="nav-link">Редактор типовых работ</router-link>
-        </li>     
-      </div>
-      <div class="navbar-nav" style="margin-right: 36%;">
-      <div class="nav-item">
-        <img src="@/assets/user2.png" class="nav-link">
-      </div>
-      <div class="nav-item">
-        <p class="nav-link" style="margin-top:5px;">{{user}}</p>
-      </div>
-      </div>
-      <div>
-        <img src="@/assets/notification.png" class="nav-link" @click="showModal = true">
-      </div>   
-      <button class="btn btn-block btn-primary" style="width: 100px;" @click="signOut()">Выйти</button>
-</nav>
-
-<modal v-if="showModal" v-bind:messages="messages" @close="showModal = false">
-</modal>
-<modalAdd v-if="showModalAdd" v-bind:listPost="listPost" v-bind:listDegree="listDegree" v-bind:listRank="listRank" @close="closeModalAdd()"></modalAdd>
 
 <div class="select_year">
   <select v-model="selectYear">
@@ -33,9 +9,6 @@
           >{{ year }}
         </option>
   </select>
-</div>
-<div>
-  <img src="@/assets/plus.png" class="addButton" @click="showModalAdd = true">
 </div>
 <div v-if="showPlans == true" class="list">
   <div class="card mb-3" style="max-width: 700px;" v-for="plan in listPlans" :key="plan.plan_id">
@@ -54,9 +27,6 @@
         </div>
       </div>
     </div>
-  <div class="button-navigation">                          
-    <router-link :to="{ name: 'EditPlan', params: { id: plan.plan_id }}"><img src="@/assets/edit.png"></router-link>
-  </div>
   </div>
 </div>
 <div v-else>
@@ -67,28 +37,17 @@
 
 <script>
 import requestService from '@/services/requestsService'
-import session from '@/services/session'
-import modal from '@/components/modal'
-import modalAdd from '@/components/modalAdd'
 
 export default {
-  name: 'MainTeacher',
-  components: {
-    modal,
-    modalAdd
-  },
+  name: 'approvedPlans',
   data () {
     return {
       listPlans: null,
       listPost: null,
       listDegree: null,
       listRank: null,
-      user: null,
       selectYear: '',
       listYear: [],
-      showModal: false,
-      messages: null,
-      showModalAdd: false,
       showPlans: false
     }
   },
@@ -102,25 +61,19 @@ export default {
   },
   methods: { 
     async getListPlans (year) {
-      const response = await requestService.fetchListPlansTeacher(year)
+      const response = await requestService.fetchListApprovedPlans(year)
       if (response.data.status == 404) {
         this.showPlans = false
-        this.user = response.data.user
-        this.listPost = response.data.post
-        this.listDegree = response.data.degree
-        this.listRank = response.data.rank
       } else {
         this.showPlans = true
         if (year == 'all year') {
           this.parsedyear(response.data)   
           this.selectYear = this.listYear[0]
-        } else {  
-          this.user = response.data.user
+        } else {            
           this.listPost = response.data.post
           this.listDegree = response.data.degree
           this.listRank = response.data.rank
-          this.listPlans = this.parsedPlan(response.data.plans)
-          this.messages = response.data.messages    
+          this.listPlans = this.parsedPlan(response.data.plans)             
         }
       }
     },
@@ -155,8 +108,7 @@ export default {
         }
         if (element.plan_bet == null) {
           element.plan_bet = 'Не указано'
-        }
-        else if (element.plan_bet == 1) {
+        } else if (element.plan_bet == 1) {
           element.plan_bet = '1.0'
         }
         element.plan_date_in = element.plan_date_in.slice(0,-14) + ' ' + element.plan_date_in.slice(11,-8) 
@@ -168,10 +120,6 @@ export default {
       for (let i = 0; i < listyear.length; i++) {
         this.listYear.push(listyear[i].plan_year)
       }
-    },
-    closeModalAdd () {
-      this.showModalAdd = false
-      this.getListPlans(this.selectYear)
     },
     signOut () {
       this.$confirm("Вы действительно хотите выйти?", "Подтверждение", 'question').then(() => {

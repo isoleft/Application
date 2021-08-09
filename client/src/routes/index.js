@@ -1,52 +1,70 @@
-import Plans from '@/components/pages/Plans.vue'
-import NewPlan from '@/components/pages/NewPlan.vue'
+import MainSecretary from '@/components/pages/MainSecretary.vue'
 import EditPlan from '@/components/pages/EditPlan.vue'
 import ContentPlan from '@/components/pages/ContentPlan.vue'
 import LoginPage from '@/components/pages/LoginPage.vue'
 import MainTeacher from '@/components/pages/MainTeacher.vue'
-import EduWork from '@/components/pages/EduWork.vue'
-import EduWorkContent from '@/components/pages/EduWorkContent.vue'
+import Registration from '@/components/pages/Registration.vue'
+import WorkloadEditor from '@/components/pages/WorkloadEditor.vue'
+import TypicalWorkEditor from '@/components/pages/TypicalWorkEditor.vue'
+import MainManager from '@/components/pages/MainManager.vue'
+import listDip from '@/components/pages/listDip.vue'
+import approvedPlans from '@/components/pages/approvedPlans.vue'
 
 const routes = [
   {
-    path: '/login',
+    path: '/',
     name: 'LoginPage',
     component: LoginPage
   },
   {
-    path: '/plans',
-    name: 'Plans',
-    component: Plans
+    path: '/mainSecretary',
+    name: 'MainSecretary',
+    component: MainSecretary
   },
   {
-    path: '/newPlan',
-    name: 'NewPlan',
-    component: NewPlan
+    path: '/workloadEditor',
+    name: 'WorkloadEditor',
+    component: WorkloadEditor
   },
   {
-    path: '/editPlan',
+    path: '/editPlan/:id',
     name: 'EditPlan',
     component: EditPlan
   },
   {
-    path: '/plans/:id',
+    path: '/contentPlan/:id',
     name: 'ContentPlan',
     component: ContentPlan
   },
   {
-    path: '/teacher',
+    path: '/mainTeacher',
     name: 'MainTeacher',
     component: MainTeacher
   },
   {
-    path: '/edu_work',
-    name: 'EduWork',
-    component: EduWork
+    path: '/mainManager',
+    name: 'MainManager',
+    component: MainManager
   },
   {
-    path: '/edu_work/:id',
-    name: 'EduWorkContent',
-    component: EduWorkContent
+    path: '/listdip',
+    name: 'listDip',
+    component: listDip
+  },
+  {
+    path: '/typicalworkEditor',
+    name: 'TypicalWorkEditor',
+    component: TypicalWorkEditor
+  },
+  {
+    path: '/approvedplans',
+    name: 'approvedPlans',
+    component: approvedPlans
+  },
+  {
+    path: '/registration',
+    name: 'Registration',
+    component: Registration
   }
 
 ]

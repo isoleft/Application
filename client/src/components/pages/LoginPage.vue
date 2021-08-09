@@ -10,11 +10,11 @@
             <input type="password" placeholder="Пароль" minlength="12" v-model="password">
             <select class="form-control" v-model="selectAccess"> 
                 <option disabled value="">Выберите роль</option>                
-                <option v-for="(access, index) in select" :key="index">
-                    {{access}}
+                <option v-for="(access, index) in optionRole" :key="index">
+                    {{access.access_type}}
                 </option>
-                </select> 
-            <router-link to="/Registration"><h6> У вас нет аккаунта? Регистрация </h6></router-link>
+            </select> 
+            <router-link :to="{ name: 'Registration' }" ><h6> У вас нет аккаунта? Регистрация </h6></router-link>
             <button @click="loginUser()">Авторизация </button>
           </div>
         </div>
@@ -26,49 +26,45 @@
 
 <script>
 
+import requestService from '@/services/requestsService'
+import session from '@/services/session'
+
 export default {
   name: 'LoginPage',
   data () {
     return {
         login: null,
         password: null,
-        select: ['Ученый секретарь', 'Преподаватель', 'Зав. кафедрой'],
-        selectAccess: '',
-        users: [
-            { login: 'AlekseevAsu', password: 'Asu1', name: 'Алексеев В.А.', role: 'Зав. кафедрой' },
-            { login: 'VedischevAsu', password: 'Asu2', name: 'Ведищев В.В.', role: 'Преподаватель' },
-            { login: 'DomayshnevAsu', password: 'Asu3', name: 'Домашнев П.А.', role: 'Преподаватель ' },
-            { login: 'GaevAsu', password: 'Asu4', name: 'Гаев Л.В.', role: 'Преподаватель' },
-            { login: 'NazarkinAsu', password: 'Asu5', name: 'Назаркин О.А.', role: 'Преподаватель' },
-            { login: 'BoldyrikhinAsu', password: 'Asu6', name: 'Болдырихин О.В.', role: 'Преподаватель' }
+        optionRole: [ 
+            {'access_type': 'Ученый секретарь', 'access_id': 0}, 
+            {'access_type': 'Преподаватель', 'access_id': 1}, 
+            {'access_type': 'Заведующий кафедрой', 'access_id': 2}
         ],
-        auth: false
+        selectAccess: '',
+        selectPath: ['MainSecretary', 'MainTeacher', 'MainManager']      
     }
   },
   methods: {
-    loginUser () { 
-        if (!this.login || !this.password || this.selectAccess == '') {
-            this.$alert("Заполните всю информацию!", "Предупреждение", "warning");
-        } else {
-            sessionStorage.clear()
-            this.forEachUsers()          
-            if(this.selectAccess == 'Ученый секретарь' && this.auth == true) {   
-                this.$router.push({ name: 'Plans'})                    
-            } else if (this.selectAccess == 'Преподаватель' && this.auth == true) {
-                this.$router.push({ name: 'MainTeacher'})            
+    async loginUser () {
+        if (this.login && this.password) {
+            if (this.selectAccess) {
+               const response = await requestService.Authorization({
+                users_login: this.login,
+                users_password: this.password,
+                access_id: this.optionRole.filter(e => e.access_type == this.selectAccess)[0].access_id,
+                })
+                if (response.data.status == 404 || response.data.status == 401) {
+                    this.$alert(response.data.message, "Ошибка", "error");
+                } else {                
+                    session.setToken(response.data.token)
+                    this.$router.push({ name: this.selectPath[this.optionRole.filter(e => e.access_type == this.selectAccess)[0].access_id]})
+                } 
             } else {
-                this.$alert("Пользователь не найден!", "Ошибка", "error");
-            }
-        }       
-    },
-    forEachUsers () {    
-        this.users.forEach(this.isPositive)
-    },
-    isPositive (element) {
-        if (element.login == this.login && element.password == this.password && element.role == this.selectAccess) {
-            this.auth = true
-            sessionStorage.setItem('userAuth', element.name)
-        }
+                this.$alert("Выберите роль!", "Предупреждение", "warning");
+            }      
+        } else {
+            this.$alert("Заполните всю информацию!", "Предупреждение", "warning");
+        }             
     }
   }
 }

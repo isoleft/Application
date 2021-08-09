@@ -1,392 +1,433 @@
 <template>
 <div>
-    <div class="action-button">
-    <Button type="info"  >Import</Button>
-    <Button type="primary"   @click="exportXlsx()">Export</Button>
-    <Button type="warning"   @click="printData()">Print</Button>
-    <Button type="info" style="margin-left: 1480px;" @click="sendPlan()">Отправить преподавателю</Button>
+    <div>
+    <div style="margin-left: 10px;" v-if="access === 0">
+    <button style="margin-top: 10px; margin-bottom: 10px;"
+        v-for="tab in tabsSecretary"
+        v-bind:key="tab"
+        v-bind:class="['tab-button', { active: currentTab === tab }]"
+        v-on:click="currentTab = tab"
+      >
+        {{ tab }}
+      </button>
     </div>
-<print ref="printPage">
-    <h1 class="hh">{{content.name}} {{content.semestr}} семестр</h1>
-<BeeGridTable
-    border
-    highlight-row
-    ref="table"
-    :showPager="false"
-    :loading="false"
-    :showFilter="false"
-    :columns="columns"
-    :data="contentPlan"
-    :showSummary="true"
->  
-      <template slot-scope="{ index }" slot="op">
-        <Button type="error" size="small" @click="deleteRow(index)">Delete</Button>
-      </template>
+    <div style="margin-left: 10px;" v-else>
+    <button style="margin-top: 10px; margin-bottom: 10px;"
+        v-for="tab in tabsTeacher"
+        v-bind:key="tab"
+        v-bind:class="['tab-button', { active: currentTab === tab }]"
+        v-on:click="currentTab = tab"
+      >
+        {{ tab }}
+      </button>
+    </div>
+    
+    <div v-if="plan_actual != 'Одобрен'" style="margin-bottom: 10px;">
+        <button v-if="access === 0 && plan_actual != 'На рассмотрении'" class="btn btn-block btn-primary" style="width: 250px; margin-left: 0.5%;" @click="notification(null)">Уведомить преподавателя</button>
+        <div v-else-if="access === 1 && plan_actual != 'На рассмотрении'">
+        <button v-if="currentTab === tabsTeacher[0] || currentTab === tabsTeacher[1]" class="btn btn-block btn-primary" style="width: 250px; margin-left: 0.5%;" @click="notification('error')">Сообщить об ошибке</button>
+        <button class="btn btn-block btn-primary" style="width: 250px; margin-left: 0.5%;" @click="notification('send')">Отправить зав.кафедрой</button>
+        </div>
+        <div v-else-if="access === 2">
+        <button class="btn btn-block btn-primary" style="width: 250px; margin-left: 0.5%;" @click="notification('error')">Сообщить об ошибке</button>
+        <button class="btn btn-block btn-primary" style="width: 250px; margin-left: 0.5%;" @click="notification('send')">Одобрить план</button>
+        </div>
+    </div>
+    </div>
 
-</BeeGridTable>
-</print>
-<div style="margin-top: 15px; margin-left: 5px;">
-    <input type="text" size="15" v-model="name"/>
-    <input type="text" size="4" v-model="kurs"/>
-    <input type="text" size="6" v-model="group"/>
-    <input type="text" size="2" v-model="task"/>
-    <input type="text" size="7" v-model="students"/>
-    <input type="text" size="3" v-model="lec"/>
-    <input type="text" size="3" v-model="lab"/>
-    <input type="text" size="2" v-model="practic"/>
-    <input type="text" size="2" v-model="zach"/>
-    <input type="text" size="3" v-model="ekz"/>
-    <input type="text" size="5" v-model="lead_vkr"/>
-    <input type="text" size="3" v-model="p_edu"/>
-    <input type="text" size="4" v-model="p_prod"/>
-    <input type="text" size="6" v-model="p_dip"/>
-    <input type="text" size="4" v-model="gos"/>
-    <input type="text" size="6" v-model="protection_vkr"/>
-    <input type="text" size="5" v-model="srs"/>
-    <input type="text" size="5" v-model="asp"/>
-    <input type="text" size="3" style="margin-left:85px;" v-model="p_lec"/>
-    <input type="text" size="3" v-model="p_lab"/>
-    <input type="text" size="2" v-model="p_practic"/>
-    <input type="text" size="11" v-model="p_theme"/>
+    <modalWork v-if="showModalWork" v-bind:plan_id="this.$route.params.id" v-bind:currentTab="currentTab" @close="closeModalWork()"></modalWork>
+    <modalKey v-if="showModalKey" v-bind:year="year" v-bind:currentTab="currentTab" @close="closeModalKey()"></modalKey>
 
-    <button type="button" class="btn btn-success" style="width: 155px; margin-bottom: 12px;" @click="addRow()">Добавить</button>
-</div>
+
+    <!--<p style="text-align: center; font-size: 25pt; text-decoration: underline;">Учебная работа на {{currentTab}} семестр {{this.$route.params.info.plan_year}} уч.год</p>
+    <p style="text-align: center; font-weight: 600;">{{this.$route.params.info.plan_post}} {{this.$route.params.info.plan_name}} ({{this.$route.params.info.plan_bet}} ст.)</p>-->
+
+    <div v-if="currentTab !== tabsTeacher[7]">
+    <BeeGridTable v-if="currentTab !== tabsTeacher[0] && currentTab !== tabsTeacher[1]"
+        border
+        highlight-row    
+        :showPager="false"
+        :loading="false"
+        :showFilter="false"
+        :columns="columsTypicalWork"
+        :data="contentTypicalWork"
+        >
+        <template v-if="plan_actual != 'Одобрен' && plan_actual != 'На рассмотрении' && access == 1" slot-scope="{ }" slot="header">
+            <button v-if="currentTab != tabsTeacher[6]" style="width: 180px; background-color: grey;" @click="showModalWork = true"><img src="@/assets/plus1.png">Добавить из списка</button>
+            <button style="width: 170px; background-color: grey;" @click="showModalKey = true"><img src="@/assets/keyboard.png"> Добавить вручную</button>
+        </template>
+
+        <template v-if="plan_actual == 'Одобрен'" slot-scope="{ row }" slot="datatable_mark">
+            <select v-model="row.datatable_mark" style="width: 150px" @change="changeMark(row)">
+                <option disabled value="">Выберите отметку</option> 
+                <option
+                    v-for=" mark in listMark" :key="mark"
+                    >{{ mark }}
+                </option>
+            </select>         
+        </template>
+
+        <template v-if="plan_actual != 'Одобрен' &&  plan_actual != 'На рассмотрении' && access == 1" slot-scope="{ row }" slot="delete">
+            <img src="@/assets/delete1.png" @click="deleteTypicalWork(row.typicalwork_id)">          
+        </template>
+    </BeeGridTable>
+    <BeeGridTable v-else
+        border
+        highlight-row  
+        :showPager="false"
+        :loading="false"
+        :showFilter="false"
+        :columns="columnsEduWork"
+        :data="contentEduWork"       
+    ></BeeGridTable>
+    </div>
+    <div v-else>
+        <div v-if="access == 2">
+            <button v-if="show1 == true" class="btn btn-block btn-primary" style="width: 350px; margin-left: 40%;" @click="addAssessment('осенний')">Добавить оценку за осенний семестр</button>
+            <button v-if="show2 == true" class="btn btn-block btn-primary" style="width: 350px; margin-left: 40%;" @click="addAssessment('весенний')">Добавить оценку за весенний семестр</button>
+        </div>
+        <div class="assessment">
+            <div v-for="assessment in contentAssessment" :key="assessment">
+                <p>ОЦЕНКА РАБОТЫ ПРЕПОДАВАТЕЛЯ за {{ assessment.assessment_semestr }} семестр {{ year }} уч. г.</p>
+                <p style="text-decoration: underline;"> {{assessment.assessment_comment}} </p>
+            </div>      
+        </div>
+    </div>
 </div>
 </template>
 
 <script>
+import requestService from '@/services/requestsService'
+import modalWork from '@/components/modalWork'
+import modalKey from '@/components/modalKey'
+
 export default {
   name: 'ContentPlan',
+  components: {
+    modalWork,
+    modalKey
+  },
   data () {
     return {
-        contentPlan: [],
-        content: {},
-        plans: [],
-        name: null,
-        kurs: null,
-        group: null,
-        task: null,
-        students: null,
-        lec: null,
-        lab: null,
-        practic: null,
-        zach: null,
-        ekz: null,
-        lead_vkr: null,
-        p_edu: null,
-        p_prod: null,
-        p_dip: null,
-        gos: null,
-        protection_vkr: null,
-        srs: null,
-        asp: null,
-        sum1: null,
-        p_lec: null,
-        p_lab: null,
-        p_practic: null,
-        p_theme: null,
-        sum2: null,
-      columns: [
-        {
-          title: "Дисциплина",
-          key: "name",
-          align: "center",
-          width: 200,
-          resizable: true,
-          sortable: true
-        },
-        {
-          title: "Курс",
-          key: "kurs",
-          align: "center",
-          width: 60,
-          resizable: true       
-        },
-        {
-          title: "Группа",
-          key: "group",
-          align: "center",
-          width: 90,
-          resizable: true,
-        },
-        {
-          title: "Зад.",
-          key: "task",
-          align: "center",
-          width: 60
-        },
-        {
-          title: "Студентов",
-          key: "students",
-          align: "center",
-          width: 100
-        },
-        {
-            title: "Количество часов",
+        currentTab: "Осенний семестр",
+        tabsSecretary: ["Осенний семестр", "Весенний семестр"],
+        tabsTeacher: ["Осенний семестр", "Весенний семестр", "Учебно-методическая работа", "Организационно-методическая работа", "Научно-исследовательская работа", 
+        "Воспитательная работа", "Повышение квалификации", "Оценка работы преподавателя"],
+        listMark: ['Выполнено', 'Заменено', 'Перенесено', 'Отменено', 'Не выполнено'],
+        contentTypicalWork: null,
+        contentEduWork: null,
+        contentAssessment: null,
+        columnsEduWork: [
+            {
+            title: "Дисциплина",
+            key: "dataeduwork_name",
             align: "center",
-            children: [
-                {
-                    title: "1-ая половина дня",                   
-                    align: "center",
-                    children: [
-                        {
-                            title: "Лекции",
-                            key: "lec",
-                            align: "center",
-                            width: 100,
-                            showSummary: true                          
-                        },
-                        {
-                            title: "Лабораторные",
-                            key: "lab",
-                            align: "center",
-                            width: 130,
-                            showSummary: true                        
-                        },
-                        {
-                            title: "Практические",
-                            key: "practic",
-                            align: "center",
-                            width: 130,
-                            showSummary: true  
-                        },
-                        {
-                            title: "Зачеты",
-                            key: "zach",
-                            align: "center",
-                            width: 90,
-                            showSummary: true  
-                        },
-                        {
-                            title: "Экзамены",
-                            key: "ekz",
-                            align: "center",
-                            width: 100,
-                            showSummary: true  
-                        },
-                        {
-                            title: "Рук. ВКР",
-                            key: "lead_vkr",
-                            align: "center",
-                            width: 90,
-                            showSummary: true  
-                        },
-                        {
-                            title: "Рук. практикой",                        
-                            align: "center",
-                            children: [
-                                {
-                                    title: "Учеб.",
-                                    key: "p_edu",
-                                    align: "center",
-                                    width: 60,
-                                    showSummary: true  
-                                },
-                                {
-                                    title: "Произ.",
-                                    key: "p_prod",
-                                    align: "center",
-                                    width: 70,
-                                    showSummary: true  
-                                },
-                                {
-                                    title: "Преддип.",
-                                    key: "p_dip",
-                                    align: "center",
-                                    width: 85,
-                                    showSummary: true  
-                                }
-                            ]
-                        },
-                        {
-                            title: "Участие в итог. атт.",                        
-                            align: "center",
-                            children: [
-                                {
-                                    title: "Гос.экз.",
-                                    key: "gos",
-                                    align: "center",
-                                    width: 70,
-                                    showSummary: true  
-                                },
-                                {
-                                    title: "Защ. ВКР",
-                                    key: "protection_vkr",
-                                    align: "center",
-                                    width: 85,
-                                    showSummary: true  
-                                }
-                            ]
-                        },               
-                        {
-                            title: "Об. СРС",
-                            key: "srs",
-                            align: "center",
-                            width: 90,
-                            showSummary: true  
-                        },
-                        {
-                            title: "Рук. асп.",
-                            key: "asp",
-                            align: "center",
-                            width: 80,
-                            showSummary: true  
-                        },
-                        {
-                            title: "Всего I-я",
-                            key: "sum1",
-                            align: "center",
-                            width: 120,
-                            showSummary: true  
-                        },
-                    ]
-                },
-                {
-                    title: "2-ая половина дня",               
-                    align: "center",
-                    children: [
-                        {
-                            title: "Подготовка",
-                            align: "center", 
-                            children: [
-                                {
-                                    title: "лек.",
-                                    key: "p_lec",
-                                    align: "center", 
-                                    width: 60,
-                                    showSummary: true                                                        
-                                },
-                                {
-                                    title: "лаб.",
-                                    key: "p_lab",
-                                    align: "center",
-                                    width: 60,
-                                    showSummary: true    
-                                },
-                                {
-                                    title: "прак.",
-                                    key: "p_practic",
-                                    align: "center",
-                                    width: 60,
-                                    showSummary: true    
-                                },
-                                {
-                                    title: "тем курc. ИДЗ",
-                                    key: "p_theme",
-                                    align: "center",
-                                    width: 120,
-                                    showSummary: true    
-                                }
-                            ]                                                  
-                        },
-                        {
-                            title: "Всего II-я",
-                            key: "sum2",
-                            align: "center",
-                            resizable: true,
-                            width: 90,
-                            showSummary: true  
-                        },
-                    ]
-                }      
-            ]
-        }
-      ],     
+            width: 200,
+            resizable: true,
+            sortable: true
+            },
+            {
+            title: "Курс",
+            key: "dataeduwork_kurs",
+            align: "center",
+            width: 60,             
+            },
+            {
+            title: "Группа",
+            key: "dataeduwork_group",
+            align: "center",
+            width: 90,
+            resizable: true,
+            sortable: true         
+            },
+            {
+            title: "Зад.",
+            key: "dataeduwork_task",
+            align: "center",
+            width: 60
+            },
+            {
+            title: "Студентов",
+            key: "dataeduwork_students",
+            align: "center",
+            width: 100
+            },
+            {
+                title: "Количество часов",
+                align: "center",
+                children: [
+                    {
+                        title: "1-ая половина дня",                   
+                        align: "center",
+                        children: [
+                            {
+                                title: "Лекции",
+                                key: "dataeduwork_lec",
+                                align: "center",
+                                width: 100,                                                       
+                            },
+                            {
+                                title: "Лабораторные",
+                                key: "dataeduwork_lab",
+                                align: "center",
+                                width: 130,                                                 
+                            },
+                            {
+                                title: "Практические",
+                                key: "dataeduwork_prac",
+                                align: "center",
+                                width: 130,                               
+                            },
+                            {
+                                title: "Зачеты",
+                                key: "dataeduwork_zach",
+                                align: "center",
+                                width: 90,         
+                            },
+                            {
+                                title: "Экзамены",
+                                key: "dataeduwork_ekz",
+                                align: "center",
+                                width: 100,                                
+                            },
+                            {
+                                title: "Рук. ВКР",
+                                key: "dataeduwork_lead_vkr",
+                                align: "center",
+                                width: 90,                             
+                            },
+                            {
+                                title: "Рук. практикой",                        
+                                align: "center",
+                                children: [
+                                    {
+                                        title: "Учеб.",
+                                        key: "dataeduwork_p_edu",
+                                        align: "center",
+                                        width: 60,                                    
+                                    },
+                                    {
+                                        title: "Произ.",
+                                        key: "dataeduwork_p_prod",
+                                        align: "center",
+                                        width: 70,                                        
+                                    },
+                                    {
+                                        title: "Преддип.",
+                                        key: "dataeduwork_p_dip",
+                                        align: "center",
+                                        width: 85,                                         
+                                    }
+                                ]
+                            },
+                            {
+                                title: "Участие в итог. атт.",                        
+                                align: "center",
+                                children: [
+                                    {
+                                        title: "Гос.экз.",
+                                        key: "dataeduwork_gos",
+                                        align: "center",
+                                        width: 70,                                       
+                                    },
+                                    {
+                                        title: "Защ. ВКР",
+                                        key: "dataeduwork_vkr",
+                                        align: "center",
+                                        width: 85,                                   
+                                    }
+                                ]
+                            },               
+                            {
+                                title: "Об. СРС",
+                                key: "dataeduwork_srs",
+                                align: "center",
+                                width: 90,                            
+                            },
+                            {
+                                title: "Рук. асп.",
+                                key: "dataeduwork_asp",
+                                align: "center",
+                                width: 80,                                 
+                            },
+                            {
+                                title: "Всего I-я",
+                                key: "dataeduwork_sum1",
+                                align: "center",
+                                width: 120,                                
+                            },
+                        ]
+                    },
+                    {
+                        title: "2-ая половина дня",               
+                        align: "center",
+                        children: [
+                            {
+                                title: "Подготовка",
+                                align: "center", 
+                                children: [
+                                    {
+                                        title: "лек.",
+                                        key: "dataeduwork_p_lec",
+                                        align: "center", 
+                                        width: 60,                                                                                             
+                                    },
+                                    {
+                                        title: "лаб.",
+                                        key: "dataeduwork_p_lab",
+                                        align: "center",
+                                        width: 60,                                        
+                                    },
+                                    {
+                                        title: "прак.",
+                                        key: "dataeduwork_p_prac",
+                                        align: "center",
+                                        width: 60,                                     
+                                    },
+                                    {
+                                        title: "тем курc. ИДЗ",
+                                        key: "dataeduwork_p_theme",
+                                        align: "center",
+                                        width: 120,                                      
+                                    }
+                                ]                                                  
+                            },
+                            {
+                                title: "Всего II-я",
+                                key: "dataeduwork_sum2",
+                                align: "center",                             
+                                width: 90,                              
+                            },
+                        ]
+                    }      
+                ]
+            }
+        ],
+        columsTypicalWork: [],
+        access: null,
+        plan_actual: null,
+        showModalWork: false,
+        showModalKey: false,
+        year: null,
+        show1: true,
+        show2: true
     }
   },
   mounted () {
-      if(localStorage.getItem('plans')) {
-      try {     
-        this.content = JSON.parse(localStorage.getItem('plans')).find(item => item.id == this.$route.params.id)  
-      } catch(e) {
-        localStorage.removeItem('plans')
-      }
+    this.getContent() 
+  },
+  watch: {
+    currentTab: function () {
+        this.getContent()
     }
   },
   methods: {
-      addRow () {   
-        this.sum1 = this.parsedNum(this.lec) + this.parsedNum(this.lab) + this.parsedNum(this.practic) + this.parsedNum(this.zach) 
-        + this.parsedNum(this.ekz) + this.parsedNum(this.lead_vkr) + this.parsedNum(this.p_edu) + this.parsedNum(this.p_prod) 
-        + this.parsedNum(this.p_dip) + this.parsedNum(this.gos) + this.parsedNum(this.srs) + this.parsedNum(this.asp)
-        this.sum2 = this.parsedNum(this.p_lec) + this.parsedNum(this.p_lab) + this.parsedNum(this.p_practic) + this.parsedNum(this.p_theme) 
-        if (this.sum1 == 0) {
-            this.sum1 = null
+    async getContent () { 
+        const response = await requestService.fetchPlanContent(this.$route.params.id, this.currentTab)
+        this.access = response.data.access_id
+        this.plan_actual = response.data.plan_actual
+        this.year =  response.data.year
+        if (this.currentTab != this.tabsTeacher[0] && this.currentTab != this.tabsTeacher[1] && this.currentTab != this.tabsTeacher[7]) {
+            this.columsTypicalWork = response.data.columns
+            this.contentTypicalWork = response.data.content  
+            console.log(this.columsTypicalWork)                   
+        } else if (this.currentTab == this.tabsTeacher[7]) {
+            this.contentAssessment = response.data.content
+            this.parsedAssessment(this.contentAssessment)         
         }
-        if (this.sum2 == 0) {
-            this.sum2 = null
-        }      
-        var obj = { name: this.name, kurs: this.kurs, group: this.group, task: this.task, students: this.students,
-            lec: this.lec, lab: this.lab, practic: this.practic, zach: this.zach, ekz: this.ekz,
-            lead_vkr: this.lead_vkr, p_edu: this.p_edu, p_prod: this.p_prod, p_dip: this.p_dip, gos: this.gos, 
-            srs: this.srs, asp: this.asp, sum1: this.sum1, p_lec: this.p_lec, p_lab: this.p_lab, p_practic: this.p_practic, 
-            p_theme: this.p_theme, sum2: this.sum2}
-        this.name =  null,
-        this.kurs = null,
-        this.group = null,
-        this.task = null,
-        this.students = null,
-        this.lec = null,
-        this.lab = null,
-        this.practic = null,
-        this.zach = null,
-        this.ekz = null,
-        this.lead_vkr = null,
-        this.p_edu = null,
-        this.p_prod = null,
-        this.p_dip = null,
-        this.gos = null,
-        this.protection_vkr = null,
-        this.srs = null,
-        this.asp = null,
-        this.sum1 = null,
-        this.p_lec = null,
-        this.p_lab = null,
-        this.p_practic = null,
-        this. p_theme = null,
-        this.sum2 = null,  
-        this.contentPlan.push(obj)
-      },
-      deleteRow (value) {
-        this.contentPlan.splice(value, 1)
-      },
-      parsedNum (value) {
-        let pars = parseInt(value)
-        if(isNaN(pars)) {
-            return 0
+         else {      
+            this.contentEduWork = response.data.content              
+        }  
+    },
+    async changeMark (object) {
+        await requestService.assessmentAdd(null, null, null, object)
+    },
+    deleteTypicalWork (id) {
+        this.$confirm("Вы действительно хотите удалить выбранную работу?", "Подтверждение", 'question').then(() => {
+            this.delete(id)
+        });      
+    },
+    async delete (id) {
+        await requestService.deleteTypicalWorkfromContent(this.$route.params.id, id, this.currentTab)   
+        this.getContent()
+    },
+    notification (choiceButton) {
+        if (this.access == 0) {    
+            this.$confirm("Вы действительно хотите уведомить преподвателя?" , "Подтверждение", 'question').then(() => { 
+                this.addNotifiration(this.$route.params.id, '', this.currentTab, choiceButton)          
+            });
+        } else if (this.access == 1) {
+            if (choiceButton == 'error') {
+                this.$prompt("Вы действительно хотите уведомить ученого секретаря об ошибке? ", 'Введите сообщение', 'Подтверждение', 'question').then((text) => { 
+                    this.addNotifiration(this.$route.params.id, text, this.currentTab, choiceButton)   
+                })
+            } else {
+                this.$confirm("Вы действительно хотите отправить план заведующему кафедрой?" , "Подтверждение", 'question').then(() => { 
+                    this.addNotifiration(this.$route.params.id, '', this.currentTab, choiceButton)          
+                });
+            }
         } else {
-            return pars
+            if (choiceButton == 'error') {
+                this.$prompt("Вы действительно хотите уведомить преподавателя об ошибке? ", 'Введите сообщение', 'Подтверждение', 'question').then((text) => { 
+                    this.addNotifiration(this.$route.params.id, text, null, choiceButton)   
+                })
+            } else {
+                this.$confirm("Вы действительно хотите одобрить план?" , "Подтверждение", 'question').then(() => { 
+                    this.addNotifiration(this.$route.params.id, '', null, choiceButton)          
+                });
+            }
+        }  
+    },
+    async addNotifiration (userPlan_id, message_content, currentTab, choiceButton) {
+        const response = await requestService.sendMessage(userPlan_id, message_content, currentTab, choiceButton)
+        if (response.data.message == 'ok') {
+            this.$alert('Сообщение отправлено', "Успешно", "success");
+            if (this.access == 2) {
+                this.$router.push({ name: 'MainManager'})
+            }
+        } else {
+            this.$alert(response.data.message, "Ошибка", "error");
         }
-      },
-      exportXlsx () {   
-        this.$refs.table.exportXlsx({
-        fileName: "data",
-        header: ["name", "kurs", "group", "task", "students", "lec", "lab", "practic", "zach", "ekz", "lead_vkr", "p_edu", "p_prod", "p_dip", "gos", "protection_vkr", 
-        "srs", "asp", "sum1", "p_lec", "p_lab", "p_practic", "p_theme", "sum2",],
-        headerDisplay: { name: "name", kurs: "kurs" , group: "group", task: "task", students: "students", lec: "lec", lab: "lab", practic: "practic", zach: "zach",
-        ekz: "ekz", lead_vkr: "lead_vkr", p_edu: "p_edu", p_prod: "p_prod", p_dip: "p_dip", gos: "gos", protection_vkr: "protection_vkr", srs: "srs", asp: "asp",
-        sum1: "sum1", p_lec: "p_lec", p_lab: "p_lab", p_practic: "p_practic", p_theme: "p_theme", sum2: "sum2"},
-        
-      });
-      },
-      printData () {      
-        //this.$htmlToPaper('printPage')
-        this.$refs.printPage.print();
-      },
-      sendPlan () {
-          this.plans = JSON.parse(localStorage.getItem('plans'))     
-          this.plans[this.indexArray()].state = 'актуально'
-          let parsed = JSON.stringify(this.plans)
-          localStorage.setItem('plans', parsed)
-          this.$alert("Учебная работа отправлена преподавателю", "Отправлено", "success");
-      },
-      indexArray () { 
-          return this.plans.findIndex(item => item.id == this.$route.params.id)    
-      }
+        this.getContent()
+    },
+    parsedAssessment(content) {
+        for (let i = 0; i < content.length; i++) {        
+            if (content[i].assessment_semestr == 'осенний') {
+                this.show1 = false
+            } else if (content[i].assessment_semestr == 'весенний'){
+                this.show2 = false
+            }
+        }
+    },
+    addAssessment (semestr) {
+        this.$prompt("", 'Введите содержимое оценки', 'Оценка работы преподавателя за ' + semestr + ' семестр', 'question').then((text) => { 
+            this.assessment(this.$route.params.id, semestr, text)
+        }) 
+    },
+    async assessment (id, semestr, text) {
+        await requestService.assessmentAdd(id, semestr, text, null)
+        this.getContent()
+    },
+    closeModalWork () {
+        this.showModalWork = false
+        this.getContent()
+    },
+    closeModalKey () {
+        this.showModalKey = false
+        this.getContent()
+    }
   }   
 }
 </script>
 
 <style scoped>
+.assessment {
+    text-align: center;
+    font-family: Century Gothic;
+    font-size: 30px;
+    color: rgb(163, 161, 165); 
+    margin-top: 5%;
+}
 .action-button {
     margin-left: 10px;
     margin-top: 10px;
@@ -397,5 +438,25 @@ export default {
     font-family: Century Gothic;
     font-size: 30px;
     color: rgb(163, 161, 165);
+}
+.tab-button {
+    padding: 6px 10px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    background: #f0f0f0;
+    margin-bottom: -1px;
+    margin-right: -1px;
+}
+.tab-button:hover {
+    background: #e0e0e0;
+}
+.tab-button.active {
+    background: #e0e0e0;
+}
+.tab {
+    border: 1px solid #ccc;
+    padding: 10px;
 }
 </style>
