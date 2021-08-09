@@ -1,0 +1,10 @@
+insert into messages(messages_content, messages_sender, messages_recipient, messages_date) values($1, $2, $3, $4)
+
+update plan set plan_name = $1, plan_bet = $2, post_id = $3, academicdegree_id = $4, academicrank_id = $5 where plan_id = $6
+
+SELECT eduload_id, eduload_form, eduload_code, eduload_name, eduload_type, eduload_group, eduload_students, eduload_semestr, ' +
+            'eduload_lec, eduload_lab, eduload_pr, eduload_ekz, eduload_zach, eduload_srs, eduload_prac, eduload_dip, eduload_gak, eduload_sum,' +
+            'eduload_idz, eduload_plec, eduload_ppr, eduload_year FROM eduload WHERE department_id = $1 and eduload_year = $2 ORDER BY eduload_id
+
+SELECT u.users_login, u.users_password, u.users_name, u.users_mail, u.access_id, u.department_id, a.access_type ' + 
+        'from users u, access a where u.access_id = a.access_id and u.users_login = $1 and u.access_id = $2
