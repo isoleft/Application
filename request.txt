@@ -1,0 +1,157 @@
+6.
+USE DBBooks
+GO
+
+ALTER PROCEDURE Swap_Publish AS
+BEGIN
+    SELECT Publish, City, Code_publish
+    FROM Publishing_house
+END;
+
+Вызов: EXEC Swap_Publish
+
+13.
+USE DBBooks
+GO
+
+CREATE PROCEDURE procedure_2 AS
+BEGIN
+    SELECT Books.Title_book, Books.Pages, Publishing_house.Publish, Publishing_house.City
+FROM Books INNER JOIN Publishing_house
+ON Books.Code_author = Publishing_house.Code_Publish
+END;
+
+Вызов: EXEC procedure_2
+
+17.
+USE DBBooks
+GO
+
+CREATE PROCEDURE procedure_3 @code_Name CHAR(30) As
+BEGIN
+	Select B.Title_book
+	From Books B, Publishing_house P
+	Where B.Code_publish = P.Code_publish and P.Publish <> @code_Name
+END;
+
+Вызов: EXEC procedure_3 'Питер-Софт'
+
+24.
+USE [DBBooks]
+GO
+
+Create PROCEDURE [dbo].[procedure_4] @code_Name1 CHAR(30), @code_Name2 CHAR(30), @code_Name3 CHAR(30) As
+BEGIN
+	Select B.Title_book
+	From Books B, Publishing_house P
+	Where B.Code_publish = P.Code_publish and P.Publish IN (@code_Name1,@code_Name2, @code_Name3);
+END;
+
+ Вызов: EXEC procedure_4 'Питер-Софт','Альфа','Наука'
+
+28.
+USE [DBBooks]
+GO
+
+Create PROCEDURE [dbo].[procedure_5] @Name Char(30) As
+BEGIN
+	Select A.Name_author
+	From Authors A
+	Where Name_author Like (rtrim(@Name)+'%')
+END;
+
+ Вызов: EXEC procedure_5 'Иванов'
+
+35.
+USE DBBooks
+GO
+
+Create PROCEDURE procedure_6 @Name Char(30), @begin int, @end int As
+BEGIN
+	Select B.Title_book
+	From Books B, Authors A
+	Where B.Code_author = A.Code_author and 
+	A.Name_author LIKE (rtrim(@Name)+'%') AND (B.Pages BETWEEN @begin and @end)
+END;
+
+Вызов: EXEC procedure_6 'А', 100, 200
+
+39.
+USE DBBooks
+GO
+
+Create PROCEDURE procedure_7 @Name Char(30)As
+BEGIN
+	SELECT A.Name_author, B.Title_book
+	FROM  Books B, Authors A, Deliveries D, Purchases P
+	WHERE A.Code_author = B.Code_author and B.Code_book = P.Code_book and
+	P.Code_delivery = D.Code_delivery and D.Name_company = @Name
+END;
+
+Вызов: Exec procedure_7 'ОАО Книготорг'
+
+46.
+USE DBBooks
+GO
+
+Create PROCEDURE procedure_8 @begin smalldatetime, @end smalldatetime As
+BEGIN
+	SELECT B.Title_book, P.Cost * P.Amount AS Itogo
+	FROM Books B INNER JOIN Purchases P 
+	ON B.Code_book = P.Code_book
+	WHERE P.Date_order BETWEEN  @begin AND @end
+END;
+
+Вызов: Exec procedure_8 '2017/01/01','2017/06/01' 
+
+53.
+USE DBBooks
+GO
+
+ALTER PROCEDURE procedure_9 @Name1 Char(30), @Name2 Char(30),@Name3 Char(30) As
+BEGIN
+	Select distinct A.Name_author
+	from Authors A, Books B, Publishing_house P
+	Where A.Code_author = B.Code_author and B.Code_publish = P.Code_publish
+	and P.Publish IN (@Name1, @Name2, @Name3)
+END;
+
+Вызов: Exec procedure_9 'Питер-Софт', 'Мир', 'Наука'
+
+57.
+USE DBBooks
+GO
+
+Create PROCEDURE procedure_11 As
+BEGIN
+	SELECT  A.Name_author
+	FROM Authors A
+	WHERE  (YEAR(getdate())-YEAR([Birthday])) 
+	< (SELECT AVG(YEAR(getdate())-YEAR([Birthday])) FROM  Authors )
+END;
+
+Вызов: Exec procedure_11
+64.
+USE DBBooks
+GO
+
+Create PROCEDURE procedure_10 @Price float As
+BEGIN
+	SELECT  D.Name_company
+	FROM   Deliveries D
+	WHERE EXISTS (SELECT * FROM Purchases P 
+	WHERE D.Code_delivery = P.Code_delivery AND P.Cost >= @Price)
+END;
+
+Вызов: Exec procedure_10 3000
+
+68.
+USE DBBooks
+GO
+
+Create PROCEDURE procedure_12 @text varchar(100) As
+BEGIN
+	Update Deliveries Set Address = @text Where Address IS NULL
+END;
+
+Вызов: Exec procedure_12 'нет сведений'
