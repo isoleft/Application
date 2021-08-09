@@ -1,6 +1,10 @@
-module.exports = {
-    port: 8081,
-    dbURL: 'mongodb://localhost/plans',
-    dbOptions: { useNewUrlParser: true, useUnifiedTopology: true }
-  }
-    
+const Pool = require('pg').Pool
+const pool = new Pool({
+    user: "postgres",
+    password: "postgres",
+    host: "localhost",
+    port: 5432,
+    database: "App_plans"
+})
+
+module.exports = pool
